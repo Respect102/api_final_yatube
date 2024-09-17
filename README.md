@@ -8,4 +8,4 @@
 - Подписываться на других пользователей
 ### 2. Установка и запуск
 Клонируем проект:
-git clone git@github.com:juliana-str/api_final_yatube.git
+```git clone git@github.com:Respect102/api_final_yatube.git```
