@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from posts.models import Comment, Group, Post
+from posts.models import Comment, Group, Post, Follow
 from rest_framework import filters, permissions, viewsets
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
@@ -23,15 +23,8 @@ class PostViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    def retrieve(self, request, pk=None):
-        queryset = Post.objects.all()
-        post = get_object_or_404(queryset, pk=pk)
-        serializer = PostSerializer(post)
-        return Response(serializer.data)
-
 
 class CommentViewSet(viewsets.ModelViewSet):
-    queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     permission_classes = (
         permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly,)
@@ -39,13 +32,12 @@ class CommentViewSet(viewsets.ModelViewSet):
     search_fields = ('post__id',)
 
     def get_queryset(self):
-        post_id = self.kwargs.get('post_id')
-        queryset = Comment.objects.filter(post__id=post_id)
+        post = get_object_or_404(Post.objects.all(), id=self.kwargs['post_id'])
+        queryset = post.comments.all()
         return queryset
 
     def perform_create(self, serializer):
-        post_id = self.kwargs.get('post_id')
-        post = get_object_or_404(Post, pk=post_id)
+        post = get_object_or_404(Post.objects.all(), id=self.kwargs['post_id'])
         serializer.save(author=self.request.user, post=post)
 
 
@@ -56,15 +48,13 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
 
 class FollowViewSet(CreateListViewSet):
     serializer_class = FollowSerializer
-    permission_classes = (
-        permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly,)
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = (filters.SearchFilter,)
     search_fields = ('following__username',)
 
     def get_queryset(self):
-        if self.request.user.is_authenticated:
-            return self.request.user.follower.all()
-        return User.objects.none()
+        user = get_object_or_404(User, username=self.request.user)
+        return Follow.objects.filter(user=user)
 
     def get_permissions(self):
         if self.request.method == 'GET' and \
