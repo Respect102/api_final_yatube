@@ -53,13 +53,7 @@ class FollowViewSet(CreateListViewSet):
 
     def get_queryset(self):
         user = get_object_or_404(User, username=self.request.user)
-        return Follow.objects.filter(user=user)
-
-    def get_permissions(self):
-        if self.request.method == 'GET' and \
-                not self.request.user.is_authenticated:
-            return [permissions.IsAuthenticated()]
-        return [permission() for permission in self.permission_classes]
+        return user.follower.all()
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
